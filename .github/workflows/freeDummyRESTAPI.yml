@@ -1,0 +1,36 @@
+name: Automated Free Dummy REST API Test with Postman through CI pipeline
+
+on: push
+
+env:
+  POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+
+jobs:
+  automated-api-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '23.1.x'
+      - name: Install Newman
+        run: |
+          npm install -g newman
+          npm install -g newman-reporter-html
+      - name: Fetch Postman collection
+        run: |
+          curl -X GET "https://api.getpostman.com/collections/36297486-2d838dec-b1e8-4358-a5c9-90154df441f2" \
+            -H "X-Api-Key: ${POSTMAN_API_KEY}" > collection.json
+      - name: Fetch Postman environment
+        run: |
+          curl -X GET "https://api.getpostman.com/environments/36297486-46a733f8-b3fb-4565-ab09-226379f80699" \
+            -H "X-Api-Key: ${POSTMAN_API_KEY}" > environment.json
+      - name: Run API test
+        run: |
+          newman run collection.json -e environment.json --reporters cli,html --reporter-html-export report.html
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-report
+          path: report.html
